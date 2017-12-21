@@ -9,13 +9,13 @@
 import numpy as np 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FormatStrFormatter
-from math import fabs, ceil, floor, tan, radians, degrees
+from math import fabs, ceil, floor, tan, atan, radians, degrees
 import sys # for maxsize
 
 M_2_MM = 1000
 MM_2_UM = 1000
 M_2_CM = 100
-
+CM_2_MM = 10
 
 def get_circle_of_confusion(s_t, N, f, s_s):
 	"""
@@ -58,22 +58,31 @@ def target_size_in_pix(s_t, FoV, res, feat_size):
 	x = s_t * tan(iFoV)		# pixel projection s_t metres away
 	return ceil(feat_size/x)
 
-def min_target_dist(FoV, res, feat_size):
+def min_target_dist(FoV, feat_size):
 	"""
 	return the minimum distance where the feature is still in the FoV
 	FoV: field of view, in degrees (one dimension)
 	res: the sensor resolution in pixels (one dimension)
 	feat_size: size of target feature in m 
 	"""
+	# FoV_rad = radians(FoV)
+	# iFoV = FoV_rad/res
+	# x = feat_size/res 		# required pixel projection
+	# return x/tan(iFoV)
+	return (feat_size/2)/tan(radians(FoV)/2)
+
+def min_target_dist_with_cover(FoV, feat_size, cover):
+	feat_size = feat_size/cover
+	return min_target_dist(FoV, feat_size)
+
+def min_FoV(dist, feat_size):
+	return degrees(2*atan(feat_size/(2*dist)))
+
+def max_target_dist(FoV, res, min_n_pixel, feat_size):
 	FoV_rad = radians(FoV)
 	iFoV = FoV_rad/res
-	x = feat_size/res 		# required pixel projection
+	x = feat_size/min_n_pixel 	# required pixel projection for detection
 	return x/tan(iFoV)
-
-def min_target_dist_with_cover(FoV, res, feat_size, cover):
-	feat_size += (1-cover)*feat_size
-	return min_target_dist(FoV, res, feat_size)
-
 
 def hyperfocal_dist(f, N, c):
 	"""
@@ -97,7 +106,7 @@ def near_dist_acceptable(f, focus, H):
 	return (focus*(H-f))/(H+focus-(2*f))
 
 def far_dist_acceptable(f, focus, H):
-	"""
+	"""radians
 	f: focal length: in mm
 	focus in mm
 	H: hyperfocal distance in mm
